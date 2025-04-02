@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -24,10 +23,10 @@ var (
 // getTestParcel возвращает тестовую посылку
 func getTestParcel() Parcel {
 	return Parcel{
-		Client:     1000,
-		Status:     ParcelStatusRegistered,
-		Address:    "test",
-		Created_at: time.Now().UTC().Format(time.RFC3339),
+		Client:    1000,
+		Status:    ParcelStatusRegistered,
+		Address:   "test",
+		CreatedAt: time.Now().UTC().Format(time.RFC3339),
 	}
 
 }
@@ -44,10 +43,7 @@ func TestAddGetDelete(t *testing.T) {
 	// add
 	// добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
 	id, err := store.Add(parcel)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	require.NoError(t, err)
 	parcel.Number = id
 
 	// get
@@ -55,19 +51,15 @@ func TestAddGetDelete(t *testing.T) {
 	// проверьте, что значения всех полей в полученном объекте совпадают со значениями полей в переменной parcel
 	retrievedParcel, err := store.Get(id)
 	require.NoError(t, err)
+
+	parcel.Number = retrievedParcel.Number
 	require.Equal(t, parcel, retrievedParcel)
-	require.Equal(t, parcel.Client, retrievedParcel.Client)
-	require.Equal(t, parcel.Status, retrievedParcel.Status)
-	require.Equal(t, parcel.Address, retrievedParcel.Address)
 
 	// delete
 	// удалите добавленную посылку, убедитесь в отсутствии ошибки
 	// проверьте, что посылку больше нельзя получить из БД
 	err = store.Delete(id)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	require.NoError(t, err)
 
 }
 
@@ -75,10 +67,7 @@ func TestAddGetDelete(t *testing.T) {
 func TestSetAddress(t *testing.T) {
 	// prepare
 	db, err := sql.Open("sqlite", "tracker.db")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	store := NewParcelStore(db)
@@ -88,26 +77,17 @@ func TestSetAddress(t *testing.T) {
 	// добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
 	Parcel := getTestParcel()
 	id, err := store.Add(Parcel)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	require.NoError(t, err)
 	// set address
 	// обновите адрес, убедитесь в отсутствии ошибки
 	newAddress := "new test address"
 	err = store.SetAddress(id, newAddress)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	require.NoError(t, err)
 
 	// check
 	// получите добавленную посылку и убедитесь, что адрес обновился
 	parcel, err = store.Get(id)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	require.NoError(t, err)
 	require.Equal(t, newAddress, parcel.Address)
 }
 
@@ -115,10 +95,7 @@ func TestSetAddress(t *testing.T) {
 func TestSetStatus(t *testing.T) {
 	// prepare
 	db, err := sql.Open("sqlite", "tracker.db")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	store := NewParcelStore(db)
@@ -127,26 +104,23 @@ func TestSetStatus(t *testing.T) {
 	// add
 	// добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
 	id, err := store.Add(parcel)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	require.NoError(t, err)
+
+	retrievedParcel, err := store.Get(id)
+	require.NoError(t, err)
+
+	parcel.Number = retrievedParcel.Number
+	require.Equal(t, parcel, retrievedParcel)
 	// set status
 	// обновите статус, убедитесь в отсутствии ошибки
 	newStatus := ParcelStatusSent
 	err = store.SetStatus(id, newStatus)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	require.NoError(t, err)
 
 	// check
 	// получите добавленную посылку и убедитесь, что статус обновился
 	parcel, err = store.Get(id)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	require.NoError(t, err)
 	require.Equal(t, newStatus, parcel.Status)
 }
 
@@ -154,10 +128,7 @@ func TestSetStatus(t *testing.T) {
 func TestGetByClient(t *testing.T) {
 	// prepare
 	db, err := sql.Open("sqlite", "tracker.db")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	require.NoError(t, err)
 	defer db.Close()
 
 	store := NewParcelStore(db)
@@ -178,10 +149,7 @@ func TestGetByClient(t *testing.T) {
 	// add
 	for i := 0; i < len(parcels); i++ {
 		id, err := store.Add(parcels[i])
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+		require.NoError(t, err)
 		// обновляем идентификатор добавленной у посылки
 		parcels[i].Number = id
 
@@ -192,10 +160,7 @@ func TestGetByClient(t *testing.T) {
 	// get by client
 	storedParcels, err := store.GetByClient(client) // получите список посылок по идентификатору клиента, сохранённого в переменной client
 	// убедитесь в отсутствии ошибки
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	require.NoError(t, err)
 	// убедитесь, что количество полученных посылок совпадает с количеством добавленных
 	require.Equal(t, len(parcels), len(storedParcels))
 
@@ -203,10 +168,10 @@ func TestGetByClient(t *testing.T) {
 	for _, parcel := range storedParcels {
 		storedParcel, exists := parcelMap[parcel.Number]
 		require.True(t, exists)
-		require.Equal(t, storedParcel.Client, parcel.Client)
-		require.Equal(t, storedParcel.Status, parcel.Status)
-		require.Equal(t, storedParcel.Address, parcel.Address)
+		storedParcel.Number = parcel.Number // Игнорируем поле Number при сравнении
+		require.Equal(t, storedParcel, parcel)
 	}
+
 	// в parcelMap лежат добавленные посылки, ключ - идентификатор посылки, значение - сама посылка
 	// убедитесь, что все посылки из storedParcels есть в parcelMap
 	// убедитесь, что значения полей полученных посылок заполнены верно
